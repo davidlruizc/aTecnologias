@@ -18,6 +18,34 @@ router.get('/sharks',function(req,res){
   res.sendFile(path + 'sharks.html');
 });
 
+router.get('/andresh',function(req,res){
+  res.sendFile(path + 'andresh.html');
+});
+
+router.get('/betava',function(req,res){
+  res.sendFile(path + 'betava.html');
+});
+
+router.get('/elkin',function(req,res){
+  res.sendFile(path + 'elkin.html');
+});
+
+router.get('/juanp',function(req,res){
+  res.sendFile(path + 'juanp.html');
+});
+
+router.get('/nicolasc',function(req,res){
+  res.sendFile(path + 'nicolasc.html');
+});
+
+router.get('/oscar',function(req,res){
+  res.sendFile(path + 'oscar.html');
+});
+
+router.get('/randy',function(req,res){
+  res.sendFile(path + 'randy.html');
+});
+
 app.use(express.static(path));
 app.use('/', router);
 
