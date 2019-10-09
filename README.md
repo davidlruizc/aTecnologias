@@ -57,6 +57,36 @@ server {
 }
 ```
 
+## Levantar el servidor Nginx con Docker Compose
+
+Este comando crea los servicios con `docker-compose up` y `-d`para que corra los contenedores de `nodejs y webserver` por detras.
+``` bash
+docker-compose up -d
+```
+
+``` bash
+Output
+Creating nodejs ... done
+Creating webserver ... done
+Creating certbot   ... done
+```
+
+`docker-compose ps` para poder revisar el status de los servicios.
+``` bash
+Output
+  Name                 Command               State          Ports
+------------------------------------------------------------------------
+certbot     certbot certonly --webroot ...   Exit 0
+nodejs      node app.js                      Up       8080/tcp
+webserver   nginx -g daemon off;             Up       0.0.0.0:80->80/tcp
+```
+
+
+Se recrea el `webserver`
+``` bash
+docker-compose up -d --force-recreate --no-deps webserver
+```
+
 ## Cambiar host
 ``` bash
 sudo vim /etc/hosts
