@@ -33,10 +33,6 @@ CMD [ "node", "app.js" ]
 Con nuestra aplicación Dockerfile en su lugar, podemos crear un archivo de configuración para ejecutar nuestro contenedor Nginx. Comenzaremos con una configuración mínima que incluirá nuestro nombre de dominio, raíz del documento, información de proxy y un bloque de ubicación para dirigir las solicitudes de Certbot al directorio .well-known, donde colocará un archivo temporal para validar que el DNS para nuestro El dominio se resuelve en nuestro servidor.
 
 ``` nginx
-upstream atecnologias {
-  server 127.0.0.1:8080;
-}
-
 server {
   listen 80;
   listen [::]:80;
@@ -55,6 +51,95 @@ server {
     root /var/www/html;
   }
 }
+```
+
+## Configuración de Docker Compose
+
+El archivo docker-compose.yml definirá nuestros servicios, incluida la aplicación Node y el servidor web. Especificará detalles como volúmenes con nombre, que serán críticos para compartir credenciales SSL entre contenedores, así como información de red y puerto. También nos permitirá especificar comandos específicos para ejecutar cuando se crean nuestros contenedores. Este archivo es el recurso central que definirá cómo nuestros servicios funcionarán juntos.
+
+El archivo va de la siguiente manera, definiendo cada uno de los servicios que este contendrá.
+
+``` docker-compose 
+version: '3'
+
+services:
+  nodejs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nodejs
+    container_name: nodejs
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  webserver:
+    image: nginx:mainline-alpine
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    environment:
+      VIRTUAL_HOST: david.localhost
+    volumes:
+      - web-root:/var/www/html
+      - ./nginx-conf:/etc/nginx/conf.d
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    depends_on:
+      - nodejs
+    networks:
+      - app-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - webserver
+    command: certonly --webroot --webroot-path=/var/www/html --email sammy@example.com --agree-tos --no-eff-email --force-renewal -d david.localhost
+
+volumes:
+  certbot-etc:
+  certbot-var:
+  web-root:
+    driver: local
+    driver_opts:
+      type: none
+      device: /Users/davidlecodes/Develop/nginx/node_project/views/
+      o: bind
+
+networks:
+  app-network:
+    driver: bridge 
+```
+
+
+## Configurar dominio personalizado
+
+Para esto es necesario entrar a las configuraciónes del sistema en la dirección `/etc/hosts/`y modificar la siguiente linea:
+
+``` bash
+127.0.0.1       localhost
+```
+cambiar por dominio personalizado, ejemplo: 
+
+``` bash
+127.0.0.1       atecnologias.localhost
+```
+
+``` bash
+sudo vim /etc/hosts
+```
+
+Una vez hecho eso volvemos a las configuraciones de nuestro `docker-compose.yml` y configuramos nuestro Virtual Host seteando el entrono dentro de nuestro contenedor.
+
+``` Dockerfile
+environment:
+      VIRTUAL_HOST: atecnologias.localhost
 ```
 
 ## Levantar el servidor Nginx con Docker Compose
@@ -87,8 +172,18 @@ Se recrea el `webserver`
 docker-compose up -d --force-recreate --no-deps webserver
 ```
 
-## Cambiar host
+Y queda de la siguiente manera en nuestra terminal.
+
 ``` bash
-sudo vim /etc/hosts
+Davids-MacBook-Pro:node_project davidlecodes$ docker-compose up -d --force-recreate --no-deps webserver
+Recreating webserver ... done
+Davids-MacBook-Pro:node_project davidlecodes$ docker-compose ps
+  Name                 Command               State                Ports             
+------------------------------------------------------------------------------------
+certbot     certbot certonly --webroot ...   Exit 1                                 
+nodejs      docker-entrypoint.sh node  ...   Up       8080/tcp                      
+webserver   nginx -g daemon off;             Up       80/tcp, 0.0.0.0:8008->8008/tcp
 ```
+
+
 
